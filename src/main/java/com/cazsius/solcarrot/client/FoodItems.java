@@ -90,7 +90,7 @@ public final class FoodItems {
 
 		defaultFoodNutritionDecays.putAll(FoodItems.getAllFoods().stream().collect(Collectors.toMap(item -> new FoodInstance(item).encode(), item -> {
 			FoodProperties foodProperties = item.getFoodProperties(item.getDefaultInstance(), null);
-			return (float) (1.0 / (1.0 + Math.log10(1.0 + foodProperties.getNutrition())));
+			return (float) (1.0 / (1.0 + Math.log10(1.0 + Math.abs(foodProperties.getNutrition()))));
 		})));
 		
 		getFoodNutritionDecayRate(new FoodInstance(Items.CARROT));
