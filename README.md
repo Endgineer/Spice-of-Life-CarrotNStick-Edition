@@ -1,3 +1,8 @@
+> [!WARNING]
+> This fork was created for personal use. It contains:
+> * A highly configurable food diversity system that incentivizes heartier foods.
+> * Options to enable hunger and saturation persistence with minimum values.
+
 <p align="center">
 	<img width=256px src="GitHub/logo.png" />
 </p>
