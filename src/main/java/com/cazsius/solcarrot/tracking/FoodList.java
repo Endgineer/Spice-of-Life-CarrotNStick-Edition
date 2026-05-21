@@ -209,7 +209,7 @@ public final class FoodList implements FoodCapability {
 		float saturation = foodProperties.getSaturationModifier();
 		
 		float diminishingReturnsPenalty = getDiminishingReturnsPenalty(item);
-		int nutritionPenalty = (int) Math.ceil(diminishingReturnsPenalty * nutrition);
+		int nutritionPenalty = (int) (nutrition < 0 ? Math.floor(diminishingReturnsPenalty * nutrition) : Math.ceil(diminishingReturnsPenalty * nutrition));
 		float saturationPenalty = (float) (nutritionPenalty == 0 ? 0 : diminishingReturnsPenalty * saturation / (2 * nutritionPenalty));
 
 		return new FoodPenalties(nutritionPenalty, saturationPenalty);
