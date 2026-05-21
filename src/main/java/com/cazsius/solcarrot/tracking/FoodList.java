@@ -4,6 +4,7 @@ import com.cazsius.solcarrot.SOLCarrotConfig;
 import com.cazsius.solcarrot.api.FoodCapability;
 import com.cazsius.solcarrot.api.SOLCarrotAPI;
 import com.cazsius.solcarrot.client.FoodItems;
+import com.cazsius.solcarrot.data.FoodPenalties;
 
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -11,7 +12,9 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
 
@@ -188,7 +191,7 @@ public final class FoodList implements FoodCapability {
 		}
 	}
 	
-	public float getDiminishingReturnsPenalty(Item food) {
+	private float getDiminishingReturnsPenalty(Item food) {
 		if (!SOLCarrotConfig.shouldCount(food)) return 1;
 		
 		FoodInstance foodInstance = new FoodInstance(food);
@@ -196,5 +199,19 @@ public final class FoodList implements FoodCapability {
 
 		float foodSpecificRate = FoodItems.getFoodNutritionDecayRate(foodInstance);
 		return (float) (1-Math.exp(-foodSpecificRate*timesPreviouslyEaten));
+	}
+	
+	public FoodPenalties getFoodPenalties(ItemStack stack) {
+		Item item = stack.getItem();
+		
+		FoodProperties foodProperties = item.getFoodProperties(stack, null);
+		int nutrition = foodProperties.getNutrition();
+		float saturation = foodProperties.getSaturationModifier();
+		
+		float diminishingReturnsPenalty = getDiminishingReturnsPenalty(item);
+		int nutritionPenalty = (int) Math.ceil(diminishingReturnsPenalty * nutrition);
+		float saturationPenalty = (float) (nutritionPenalty == 0 ? 0 : diminishingReturnsPenalty * saturation / (2 * nutritionPenalty));
+
+		return new FoodPenalties(nutritionPenalty, saturationPenalty);
 	}
 }

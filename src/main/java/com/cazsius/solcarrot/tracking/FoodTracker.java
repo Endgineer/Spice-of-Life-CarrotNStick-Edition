@@ -2,6 +2,8 @@ package com.cazsius.solcarrot.tracking;
 
 import com.cazsius.solcarrot.SOLCarrot;
 import com.cazsius.solcarrot.SOLCarrotConfig;
+import com.cazsius.solcarrot.data.FoodPenalties;
+
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.particles.ParticleOptions;
@@ -30,21 +32,15 @@ public final class FoodTracker {
 		
 		if (SOLCarrotConfig.limitProgressionToSurvival() && player.isCreative()) return;
 		
-		var usedItem = event.getItem().getItem();
+		var usedItemStack = event.getItem();
+		var usedItem = usedItemStack.getItem();
 		if (!usedItem.isEdible()) return;
 		
 		FoodList foodList = FoodList.get(player);
 		
-		FoodProperties foodProperties = usedItem.getFoodProperties(event.getItem(), player);
-		int nutrition = foodProperties.getNutrition();
-		float saturation = foodProperties.getSaturationModifier();
-		
-		float diminishingReturnsPenalty = foodList.getDiminishingReturnsPenalty(usedItem);
-		int nutritionPenalty = (int) Math.ceil(diminishingReturnsPenalty * nutrition);
-		float saturationPenalty = (float) (diminishingReturnsPenalty * saturation / (2 * nutritionPenalty));
-		
+		FoodPenalties penalties = foodList.getFoodPenalties(usedItemStack);
 		FoodData foodData = player.getFoodData();
-		foodData.eat(-nutritionPenalty, -saturationPenalty);
+		foodData.eat(-penalties.nutrition, -penalties.saturation);
 
 		boolean hasTriedNewFood = foodList.addFood(usedItem);
 		
