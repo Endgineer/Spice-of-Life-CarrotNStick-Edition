@@ -69,5 +69,8 @@
 	"config.solcarrot.food_whitelist": "Whitelist (disables blacklist)",
 	"config.solcarrot.minimum_food_value": "Minimum Food Value",
 	"config.solcarrot.diversity_history_size": "Diversity History Size",
+	"config.solcarrot.hunger_persistence": "Hunger Persistence",
+	"config.solcarrot.minimum_respawn_hunger": "Minimum Respawn Hunger",
+	"config.solcarrot.death_resets_saturation": "Death Resets Saturation",
 	"config.solcarrot.reset_on_death": "Reset on Death"
 }
