@@ -68,5 +68,6 @@
 	"config.solcarrot.food_blacklist": "Blacklist",
 	"config.solcarrot.food_whitelist": "Whitelist (disables blacklist)",
 	"config.solcarrot.minimum_food_value": "Minimum Food Value",
+	"config.solcarrot.diversity_history_size": "Diversity History Size",
 	"config.solcarrot.reset_on_death": "Reset on Death"
 }

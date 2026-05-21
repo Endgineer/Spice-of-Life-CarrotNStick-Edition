@@ -4,18 +4,15 @@ import com.cazsius.solcarrot.SOLCarrot;
 import com.cazsius.solcarrot.SOLCarrotConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.GameType;
+import net.minecraft.world.food.FoodData;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -37,6 +34,18 @@ public final class FoodTracker {
 		if (!usedItem.isEdible()) return;
 		
 		FoodList foodList = FoodList.get(player);
+		
+		FoodProperties foodProperties = usedItem.getFoodProperties(event.getItem(), player);
+		int nutrition = foodProperties.getNutrition();
+		float saturation = foodProperties.getSaturationModifier();
+		
+		float diminishingReturnsPenalty = foodList.getDiminishingReturnsPenalty(usedItem);
+		int nutritionPenalty = (int) Math.ceil(diminishingReturnsPenalty * nutrition);
+		float saturationPenalty = (float) (diminishingReturnsPenalty * saturation / (2 * nutritionPenalty));
+		
+		FoodData foodData = player.getFoodData();
+		foodData.eat(-nutritionPenalty, -saturationPenalty);
+
 		boolean hasTriedNewFood = foodList.addFood(usedItem);
 		
 		// check this before syncing, because the sync entails an hp update

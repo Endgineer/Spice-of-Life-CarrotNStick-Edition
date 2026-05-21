@@ -3,6 +3,7 @@ package com.cazsius.solcarrot;
 import com.cazsius.solcarrot.tracking.CapabilityHandler;
 import com.cazsius.solcarrot.tracking.FoodList;
 import com.google.common.collect.Lists;
+
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -101,6 +102,22 @@ public final class SOLCarrotConfig {
 		return SERVER.limitProgressionToSurvival.get();
 	}
 	
+	public static int getDiversityHistorySize() {
+		return SERVER.diversityHistorySize.get();
+	}
+	
+	public static boolean hungerPersistence() {
+		return SERVER.hungerPersistence.get();
+	}
+	
+	public static int minimumRespawnHunger() {
+		return SERVER.minimumRespawnHunger.get();
+	}
+	
+	public static boolean saturationPersistence() {
+		return SERVER.saturationPersistence.get();
+	}
+	
 	public static class Server {
 		public final IntValue baseHearts;
 		public final IntValue heartsPerMilestone;
@@ -112,6 +129,11 @@ public final class SOLCarrotConfig {
 		
 		public final BooleanValue shouldResetOnDeath;
 		public final BooleanValue limitProgressionToSurvival;
+		
+		public final IntValue diversityHistorySize;
+		public final BooleanValue hungerPersistence;
+		public final IntValue minimumRespawnHunger;
+		public final BooleanValue saturationPersistence;
 		
 		Server(Builder builder) {
 			builder.push("milestones");
@@ -161,6 +183,29 @@ public final class SOLCarrotConfig {
 				.translation(localizationPath("limit_progression_to_survival"))
 				.comment("If true, eating foods outside of survival mode (e.g. creative/adventure) is not tracked and thus does not contribute towards progression.")
 				.define("limitProgressionToSurvival", false);
+			
+			builder.pop();
+			builder.push("diversity");
+			
+			diversityHistorySize = builder
+				.translation(localizationPath("diversity_history_size"))
+				.comment("The number of last eaten foods tracked in history used for diversity calculations. A value of 0 disables diversity.")
+				.defineInRange("diversityHistorySize", 16, 0, 65536);
+			
+			hungerPersistence = builder
+				.translation(localizationPath("hunger_persistence"))
+				.comment("Whether the player's hunger level should persist after death, subject to the minimum respawn hunger condition.")
+				.define("hungerPersistence", true);
+			
+			minimumRespawnHunger = builder
+				.translation(localizationPath("minimum_respawn_hunger"))
+				.comment("The minimum hunger that must be persisted after death, regardless of the player's hunger upon death.")
+				.defineInRange("minimumRespawnHunger", 6, 0, 1000);
+			
+			saturationPersistence = builder
+				.translation(localizationPath("death_resets_saturation"))
+				.comment("Whether saturation should persist on death. Setting this to false will make saturation reset on death.")
+				.define("saturationPersistence", true);
 			
 			builder.pop();
 		}

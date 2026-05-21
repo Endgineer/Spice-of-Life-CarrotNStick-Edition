@@ -7,7 +7,10 @@ plugins {
 }
 
 repositories {
-	maven { url "https://maven.ryanliptak.com/" }
+	// If you have mod jar dependencies in ./libs, you can declare them as a repository like so:
+	flatDir {
+		dir 'libs'
+	}
 }
 
 def full_mod_version = "${mc_version}-${mod_version}"

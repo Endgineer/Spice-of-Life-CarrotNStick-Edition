@@ -3,6 +3,8 @@ package com.cazsius.solcarrot.tracking;
 import com.cazsius.solcarrot.SOLCarrotConfig;
 import com.cazsius.solcarrot.api.FoodCapability;
 import com.cazsius.solcarrot.api.SOLCarrotAPI;
+import com.cazsius.solcarrot.client.FoodItems;
+
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -15,13 +17,20 @@ import net.minecraftforge.common.util.LazyOptional;
 
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Queue;
 
 @ParametersAreNonnullByDefault
 public final class FoodList implements FoodCapability {
 	private static final String NBT_KEY_FOOD_LIST = "foodList";
+	private static final String NBT_KEY_DIVERSITY_HISTORY = "diversityHistory";
+	private static final String NBT_KEY_HISTORY_FOOD_COUNT = "historyFoodCount";
 	
 	public static FoodList get(Player player) {
 		return (FoodList) player.getCapability(SOLCarrotAPI.foodCapability)
@@ -29,6 +38,8 @@ public final class FoodList implements FoodCapability {
 	}
 	
 	private final Set<FoodInstance> foods = new HashSet<>();
+	private final Queue<FoodInstance> diversityHistory = new LinkedList<>();
+	private final Map<FoodInstance, Integer> historyFoodCount = new HashMap<>();
 	
 	@Nullable
 	private ProgressInfo cachedProgressInfo;
@@ -55,6 +66,21 @@ public final class FoodList implements FoodCapability {
 			.forEach(list::add);
 		tag.put(NBT_KEY_FOOD_LIST, list);
 		
+		var queue = new ListTag();
+		diversityHistory.stream()
+			.map(FoodInstance::encode)
+			.filter(Objects::nonNull)
+			.map(StringTag::valueOf)
+			.forEach(queue::add);
+		tag.put(NBT_KEY_DIVERSITY_HISTORY, queue);
+		
+		var map = new CompoundTag();
+		historyFoodCount.entrySet().stream()
+			.map(entry -> Map.entry(entry.getKey().encode(), entry.getValue()))
+			.filter(Objects::nonNull)
+			.forEach(entry -> map.putInt(entry.getKey(), entry.getValue()));
+		tag.put(NBT_KEY_HISTORY_FOOD_COUNT, map);
+		
 		return tag;
 	}
 	
@@ -71,13 +97,54 @@ public final class FoodList implements FoodCapability {
 			.filter(Objects::nonNull)
 			.forEach(foods::add);
 		
+		var queue = tag.getList(NBT_KEY_DIVERSITY_HISTORY, Tag.TAG_STRING);
+
+    diversityHistory.clear();
+    queue.stream()
+			.map(nbt -> (StringTag) nbt)
+			.map(StringTag::getAsString)
+			.map(FoodInstance::decode)
+			.filter(Objects::nonNull)
+			.forEach(diversityHistory::offer);
+		
+		var map = tag.getCompound(NBT_KEY_HISTORY_FOOD_COUNT);
+		
+    historyFoodCount.clear();
+    map.getAllKeys().forEach(key -> {
+        var foodInstance = FoodInstance.decode(key);
+        if (foodInstance != null) {
+            historyFoodCount.put(foodInstance, map.getInt(key));
+        }
+    });
+		
 		invalidateProgressInfo();
 	}
 	
 	/** @return true if the food was not previously known, i.e. if a new food has been tried */
 	public boolean addFood(Item food) {
-		boolean wasAdded = foods.add(new FoodInstance(food)) && SOLCarrotConfig.shouldCount(food);
+		FoodInstance foodInstance = new FoodInstance(food);
+		
+		boolean wasAdded = foods.add(foodInstance) && SOLCarrotConfig.shouldCount(food);
 		invalidateProgressInfo();
+
+		int diversityHistorySize = SOLCarrotConfig.getDiversityHistorySize();
+		if (diversityHistorySize > 0) {
+			if (diversityHistory.size() == diversityHistorySize) {
+				FoodInstance dequeuedFoodInstance = diversityHistory.poll();
+				int historyInstancesRemaining = historyFoodCount.get(dequeuedFoodInstance)-1;
+				
+				if (historyInstancesRemaining == 0) {
+					historyFoodCount.remove(dequeuedFoodInstance);
+				} else {
+					historyFoodCount.put(dequeuedFoodInstance, historyInstancesRemaining);
+				}
+			}
+
+			int historyInstancesUpdated = historyFoodCount.getOrDefault(foodInstance, 0)+1;
+			historyFoodCount.put(foodInstance, historyInstancesUpdated);
+			diversityHistory.offer(foodInstance);
+		}
+		
 		return wasAdded;
 	}
 	
@@ -89,6 +156,8 @@ public final class FoodList implements FoodCapability {
 	
 	public void clearFood() {
 		foods.clear();
+		diversityHistory.clear();
+		historyFoodCount.clear();
 		invalidateProgressInfo();
 	}
 	
@@ -117,5 +186,15 @@ public final class FoodList implements FoodCapability {
 		public FoodListNotFoundException() {
 			super("Player must have food capability attached, but none was found.");
 		}
+	}
+	
+	public float getDiminishingReturnsPenalty(Item food) {
+		if (!SOLCarrotConfig.shouldCount(food)) return 1;
+		
+		FoodInstance foodInstance = new FoodInstance(food);
+		int timesPreviouslyEaten = historyFoodCount.getOrDefault(foodInstance, 0);
+
+		float foodSpecificRate = FoodItems.getFoodNutritionDecayRate(foodInstance);
+		return (float) (1-Math.exp(-foodSpecificRate*timesPreviouslyEaten));
 	}
 }

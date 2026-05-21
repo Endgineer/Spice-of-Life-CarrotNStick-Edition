@@ -6,6 +6,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.food.FoodData;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
@@ -31,6 +32,21 @@ public final class MaxHealthHandler {
 		if (prevModifier == null) return;
 		
 		updateHealthModifier(event.getEntity(), prevModifier);
+
+		if (!event.isWasDeath()) {
+			return;
+		}
+		
+		FoodData oldFood = event.getOriginal().getFoodData();
+		FoodData newFood = event.getEntity().getFoodData();
+		
+		if (SOLCarrotConfig.hungerPersistence()) {
+			newFood.setFoodLevel(Math.max(SOLCarrotConfig.minimumRespawnHunger(), oldFood.getFoodLevel()));
+		}
+
+		if (SOLCarrotConfig.saturationPersistence()) {
+			newFood.setSaturation(oldFood.getSaturationLevel());
+		}
 	}
 	
 	/** @return whether the player reached a new milestone in this update */
